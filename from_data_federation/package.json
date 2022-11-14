@@ -1,0 +1,17 @@
+{
+  "name": "mdb-load-from-s3",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "aggregation": "node run_aggregation.js"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "dotenv": "^16.0.3",
+    "mongodb": "^4.11.0",
+    "urllib": "^3.5.0"
+  }
+}
