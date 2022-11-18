@@ -1,6 +1,6 @@
 require('dotenv').config()
 const { request } = require('urllib');
-const mappings = require('./mappings.json');
+const mappings = require('../mappings.json');
 
 const { MongoClient, ObjectId } = require('mongodb');
 
