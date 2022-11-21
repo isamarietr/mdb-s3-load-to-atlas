@@ -2,24 +2,25 @@ require('dotenv').config()
 const { request } = require('urllib');
 const mappings = require('../mappings.json');
 
-const { MongoClient, ObjectId } = require('mongodb');
+const { MongoClient } = require('mongodb');
 
-const uri = process.env.MDB_URI
-const df_uri = process.env.DATA_FEDERATION_URI
-const databaseName = process.env.TARGET_DATABASE
-const collectionName = process.env.TARGET_COLLECTION
-const virtualDatabase = process.env.SOURCE_VIRTUAL_DB
-const virtualCollection = process.env.SOURCE_VIRTUAL_COLLECTION
+const MDB_URI = process.env.MDB_URI
+const DATA_FEDERATION_URI = process.env.DATA_FEDERATION_URI
+const TARGET_DATABASE = process.env.TARGET_DATABASE
+const TARGET_COLLECTION = process.env.TARGET_COLLECTION
+const SOURCE_VIRTUAL_DB = process.env.SOURCE_VIRTUAL_DB
+const SOURCE_VIRTUAL_COLLECTION = process.env.SOURCE_VIRTUAL_COLLECTION
 const ATLAS_BASE_URL = process.env.ATLAS_BASE_URL
 const ATLAS_API_VERSION = process.env.ATLAS_API_VERSION
 const ATLAS_PROJECT_ID = process.env.ATLAS_PROJECT_ID
 const ATLAS_CLUSTER_NAME = process.env.ATLAS_CLUSTER_NAME
 const ATLAS_API_KEY = process.env.ATLAS_API_KEY
-const MERGE_FIELD = "id"
 
 async function main() {
-  const client = new MongoClient(uri)
-  const dataFedClient = new MongoClient(df_uri)
+  // connection to target cluster
+  const client = new MongoClient(MDB_URI)
+  // connection to source data federation
+  const dataFedClient = new MongoClient(DATA_FEDERATION_URI)
 
   try {
     // Connect to the MongoDB cluster
@@ -29,14 +30,10 @@ async function main() {
     console.log(`=> START TIME ${start}`);
 
     await createTargetCollection(client);
-
-    const indexName = "default"
-
-    await createSearchIndexes(mappings, indexName);
-
+    await createSearchIndexes(mappings);
     await loadDataFromS3(dataFedClient);
-    let end = new Date().toLocaleString()
 
+    let end = new Date().toLocaleString()
     console.log(`=> DONE!!`);
     console.log(`=> START TIME ${start}`);
     console.log(`=> END TIME ${end}`);
@@ -51,29 +48,28 @@ async function main() {
 
 main().catch(console.error);
 
+/**
+ * Create the target collection
+ * @param {*} client 
+ */
 async function createTargetCollection(client) {
-
-  const db = client.db(databaseName)
-  // const existingCollections = await db.listCollections().toArray().map(e => e.name)
-  // console.log(existingCollections);
-  // if(existingCollections.includes(collectionName)){
-  // await db.dropCollection(collectionName)
-  // }
-  const collection = await client.db(databaseName).createCollection(collectionName)
-  collection.createIndex({"id": 1}, { unique: true })
+  await client.db(TARGET_DATABASE).createCollection(TARGET_COLLECTION)
 }
 
-async function createSearchIndexes(mappings, indexName) {
+/**
+ * Create Atlas Search index with specified mappings definition
+ * @param {*} mappings 
+ */
+async function createSearchIndexes(mappings) {
   const start = new Date()
   console.log(`====> CREATING ATLAS SEARCH INDEX - START TIME ${start.toLocaleString()}`);
 
   const url = `${ATLAS_BASE_URL}/api/atlas/${ATLAS_API_VERSION}/groups/${ATLAS_PROJECT_ID}/clusters/${ATLAS_CLUSTER_NAME}/fts/indexes`
-
   var content = JSON.stringify({
-    "collectionName": collectionName,
-    "database": databaseName,
+    "TARGET_COLLECTION": TARGET_COLLECTION,
+    "database": TARGET_DATABASE,
     "mappings": mappings,
-    "name": indexName
+    "name": "default"
   });
 
   await request(url, {
@@ -88,28 +84,33 @@ async function createSearchIndexes(mappings, indexName) {
   const end = new Date()
   console.log(`====> CREATED ATLAS SEARCH INDEX - END TIME ${end.toLocaleString()}. Duration: ${(end.getTime() - start.getTime()) / 1000} seconds`);
 }
+
+/**
+ * Run aggregation pipeline to output data to Atlas cluster
+ * @param {*} client 
+ */
 async function loadDataFromS3(client) {
   const start = new Date()
   console.log(`====> LOADING DATA - START TIME ${start.toLocaleString()}`);
 
-  const collection = client.db(virtualDatabase).collection(virtualCollection)
+  const collection = client.db(SOURCE_VIRTUAL_DB).collection(SOURCE_VIRTUAL_COLLECTION)
   const pipeline = [
+    // {
+    //   '$match': {
+    //     //some condition here. helpful for parallelizing load
+    //   }
+    // },
     {
-      '$merge': {
-        'into': {
-          'atlas': {
-            'clusterName': ATLAS_CLUSTER_NAME, 
-            'db': databaseName, 
-            'coll': collectionName
-          }
-        }, 
-        'on': 'id', 
-        'whenMatched': 'replace', 
-        'whenNotMatched': 'insert'
+      '$out': {
+        'atlas': {
+          'clusterName': ATLAS_CLUSTER_NAME,
+          'db': TARGET_DATABASE,
+          'coll': TARGET_COLLECTION
+        }
       }
     }
   ]
-  
+
   await collection.aggregate(pipeline).toArray()
 
   const end = new Date()
