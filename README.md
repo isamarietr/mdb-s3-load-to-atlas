@@ -2,8 +2,8 @@
 
 A few options:
 
-1. [Load using Atlas Data Federation](from_data_federation)
-2. [Pipe AWS S3 to MongoDB using mongoimport utility tool](from_mongoimport)
+1. [Load using Atlas Data Federation](s3_to_cluster_via_data_federation)
+2. [Pipe AWS S3 to MongoDB using mongoimport utility tool](s3_to_cluster_via_awscli_pipe_mongoimport)
 3. Copy files from S3 locally and use the [mongoimport](https://www.mongodb.com/docs/database-tools/mongoimport/) utility tool
 4. Read the data from S3 files and use the MongoDB Driver to do [`insertOne`](https://www.mongodb.com/docs/manual/reference/method/db.collection.insertOne/#examples) or [`insertMany`](https://www.mongodb.com/docs/manual/reference/method/db.collection.insertMany/#examples) operations
 
