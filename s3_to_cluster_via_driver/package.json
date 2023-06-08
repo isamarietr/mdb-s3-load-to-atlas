@@ -10,6 +10,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "aws-sdk": "^2.1393.0",
     "dotenv": "^16.0.3",
     "mongodb": "^4.11.0"
   }
