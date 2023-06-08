@@ -30,7 +30,7 @@ async function main() {
     const start = new Date().toLocaleString()
     console.log(`=> START TIME ${start}`);
 
-    await loadDataFromS3(s3_client);
+    await loadDataFromS3(client, s3_client);
 
     let end = new Date().toLocaleString()
     console.log(`=> DONE!!`);
@@ -50,7 +50,7 @@ main().catch(console.error);
  * Read AWS files and insert data to Atlas 
  * @param {*} s3_client 
  */
-async function loadDataFromS3(s3_client) {
+async function loadDataFromS3(client, s3_client) {
 
   const collection = client.db(TARGET_DATABASE).collection(TARGET_COLLECTION);
   const params = { 
@@ -62,7 +62,7 @@ async function loadDataFromS3(s3_client) {
   for (const object of objects.Contents) {
     // Download the file from S3
     const fileParams = {
-      Bucket: S3_BUCKET_NAME,
+      Bucket: AWS_S3_BUCKET_NAME,
       Key: object.Key
     };
     const fileData = await s3_client.getObject(fileParams).promise();
