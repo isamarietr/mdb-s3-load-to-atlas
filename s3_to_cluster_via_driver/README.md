@@ -19,7 +19,4 @@ npm install
 ```
 node index.js
 ```
-## Screenshots
 
-Data Federation Configuration
-![alt text](screenshot2.png)
